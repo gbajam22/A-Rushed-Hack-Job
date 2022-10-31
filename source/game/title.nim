@@ -21,7 +21,7 @@ const
   
   psgoShowPos* = vec2f(psX,fp(85))
   
-  controlsY = fp(ScreenHeight) - fp(40)
+  controlsY = fp(ScreenHeight) - fp(56)
   
   controlsHidePos* = vec2f(fp(ScreenWidth) + fp(8), controlsY)
   controlsShowPos* = vec2f(fp(ScreenWidth) - fp(70), controlsY)

@@ -72,6 +72,7 @@ proc reset*(self: var Player) =
   self.vel = vec2f()
   self.swordCooldown = 0
   self.setAnimToRunning()
+  self.backSwing = false
 
 proc init*(self: var Player) =
   self.body.size = vec2i(8,28)
@@ -129,10 +130,11 @@ proc update*(self: var Player) =
   self.anim.update()
 
 proc draw*(self: var Player) =
-  let screenpos = vec2i(self.body.centerBottom) - cameraOffset + vec2i(-16,-32)
+  let screenpos = vec2i(self.body.centerBottom) - cameraOffset + vec2i(-26,-32)
   
   if self.anim.dirty():
-    copyframe(addr objTileMem[self.obj.tid], gfxPlayer, self.anim.frame)
+    let frame = if self.backSwing: self.anim.frame + 10 else: self.anim.frame
+    copyframe(addr objTileMem[self.obj.tid], gfxPlayer, frame)
   
   if onscreen(gfxPlayer, screenpos):
     withObj:

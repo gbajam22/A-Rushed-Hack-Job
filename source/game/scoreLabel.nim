@@ -20,6 +20,7 @@ proc init*(self: var ScoreLabel, pos: Vec2i, prefix: cstring, score: int = 0) =
 
 proc destroy*(self: var ScoreLabel) =
   self.label.destroy()
+  releaseObjPal(gfxLogo)
 
 proc update*(self: var ScoreLabel) =
   discard

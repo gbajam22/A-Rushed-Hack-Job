@@ -1,6 +1,6 @@
 include prelude
 import natu/[maxmod]
-import game/[player, slash, title, target, camera, scoreLabel]
+import game/[player, slash, title, target, camera, scoreLabel, nowPlayingLabel, livesIndicator]
 import fader, saveData
 
 type
@@ -25,6 +25,8 @@ type
     scoreLabel: ScoreLabel
     highScoreLabel: ScoreLabel
     
+    songLabel: NowPlayingLabel
+    
     freezeFrame: int
     freezeJumpBuffer: bool
     freezeSlashBuffer: bool
@@ -34,15 +36,35 @@ type
     
     permittedTargets: set[TargetKind]
     
-    lives: int
-    
+    lives: LivesIndicator
     
     scrollPos: Fixed
     scrollSpeed: Fixed
     
     state: GameState
+  
+  SongData = object
+    module: Module
+    title: cstring
 
 var game: Game
+
+const songList = [
+  SongData(module: modLijn, title: "Lijn".cstring),
+  SongData(module: modAbove, title: "Above".cstring),
+]
+
+var songSelected = 0
+
+proc playSongFromList(index: int) =
+  songSelected = index
+  playSong(songList[songSelected].module)
+  game.songLabel.show(songList[songSelected].title)
+
+proc switchMusic() =
+  inc songSelected
+  if songSelected >= songList.len: songSelected = 0
+  playSongFromList(songSelected)
 
 const
   sturdyTargetThreshold = 10
@@ -82,7 +104,7 @@ proc resetGame() =
   
   game.freezeFrame = 0
   
-  game.lives = 3
+  game.lives.remaining = game.lives.total
   setScore(0)
   
   game.permittedTargets = {tkNormal}
@@ -93,12 +115,10 @@ proc setGameState(state: GameState) =
       fadeAmount = 31
       resetGame()
     of gsTitle:
-      printf("TITLE")
       game.title.show()
       game.psTitle.show(psShowPos)
       game.controls.show()
     of gsPlay:
-      printf("PLAY")
       game.title.hide()
       game.psTitle.hide()
       game.controls.hide()
@@ -118,9 +138,9 @@ proc setGameState(state: GameState) =
   
   game.state = state
 
+
+
 proc onShow =
-  
-  playSong(modNinjaGroove)
   
   cameraOffset = vec2i()
   
@@ -131,6 +151,9 @@ proc onShow =
   game.controls.init(gfxControls, controlsHidePos, controlsShowPos)
   game.gameOverTitle.init(gfxGameOver, gameOverHidePos, gameOverShowPos)
   game.newHighScoreTitle.init(gfxNewHighScore, newHighScoreHidePos, newHighScoreShowPos)
+  game.lives.init(3)
+  
+  game.songLabel.init(fp(-20), fp(4))
   
   game.scoreLabel.init(vec2i(10,10), "Score: ".cstring)
   game.highScoreLabel.init(vec2i(10,20), "High Score: ".cstring, getBestScore().int)
@@ -168,6 +191,8 @@ proc onShow =
   display.obj1d = true
   
   setGameState(gsFadeIn)
+  
+  playSongFromList(0)
 
 proc onHide =
   game.player.destroy()
@@ -184,6 +209,8 @@ proc onHide =
   game.controls.destroy()
   game.gameOverTitle.destroy()
   game.newHighScoreTitle.destroy()
+  game.songLabel.destroy()
+  game.lives.destroy()
   
   game.scoreLabel.destroy()
   game.highScoreLabel.destroy()
@@ -206,12 +233,11 @@ proc scorePoint(val: int = 1) =
 proc takeDamage() =
   cameraShake(fp(3),fp(0.25))
   game.freezeFrame = 5
-  dec game.lives
+  dec game.lives.remaining
   playSound(sfxAlarm)
   
-  if game.lives <= 0:
+  if game.lives.remaining <= 0:
     setGameState(gsGameOver)
-  #TODO: ADD FAILURE
 
 proc cleanUpTargets(index: int = 0) =
   if index >= game.targets.len: return
@@ -249,11 +275,14 @@ proc onUpdate =
     if keyHit(kiB): game.freezeSlashBuffer = true
     return
   
+  if keyHit(kiSelect): switchMusic()
+  
   game.title.update()
   game.psTitle.update()
   game.controls.update()
   game.gameOverTitle.update()
   game.newHighScoreTitle.update()
+  game.songLabel.update()
   
   game.scoreLabel.update()
   game.highScoreLabel.update()
@@ -286,7 +315,8 @@ proc onUpdate =
         createSlash(
           game.player.pos + vec2f(fp(16),fp(0)),
           vec2f(game.player.vel.x,fp(0)),
-          game.player.backSwing)
+          not game.player.backSwing
+          )
       )
   
   if keyHit(kiA) or game.freezeJumpBuffer:
@@ -332,10 +362,12 @@ proc onDraw =
   game.controls.draw()
   game.gameOverTitle.draw()
   game.newHighScoreTitle.draw()
+  game.songLabel.draw()
   
   if game.state in {gsPlay,gsGameOver,gsFadeOut}:
     game.scoreLabel.draw()
     game.highScoreLabel.draw()
+    game.lives.draw()
   game.player.draw()
   for s in game.slashes.mitems():
     s.draw()
