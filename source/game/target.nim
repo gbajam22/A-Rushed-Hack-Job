@@ -48,6 +48,7 @@ type
     body*: Body
     speed: Fixed
     kind: TargetKind
+    invulTimer*: int
     finished*: bool
     failed*: bool
 
@@ -62,7 +63,7 @@ proc initTarget*(kind: TargetKind): Target =
   result.failed = false
   
   result.speed = targetSpeed
-  
+  result.invulTimer = 0
   result.body.size = vec2i(16,32)
   
   result.pos = vec2f(rightLimit, rand(topLimit,bottomLimit))
@@ -75,10 +76,13 @@ proc hit*(self: var Target) =
   if self.kind == tkSturdy:
     self.speed = fp(3)
     self.kind = tkNormal
+    self.invulTimer = 10
   else:
     self.finished = true
 
 proc update*(self: var Target) =
+  if self.invulTimer > 0: dec self.invulTimer
+  
   self.speed.approach(targetSpeed, fp(0.1))
   self.pos.x += self.speed
   

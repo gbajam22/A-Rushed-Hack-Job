@@ -3,7 +3,7 @@ import common, camera
 
 const
   maxJumps = 2
-  jumpHeight = fp(-4.5)
+  jumpHeight = fp(-4.75)
   
   maxSwordCooldown = 15
   
@@ -52,6 +52,7 @@ proc `pos=`*(self: var Player, pos: Vec2f) =  self.body.pos = pos
 
 proc jump*(self: var Player) =
   if self.jumpsRemaining > 0:
+    playSound(pickRandom(swishEffects))
     self.vel.y = jumpHeight
     dec self.jumpsRemaining
     self.setAnimToJumping()

@@ -1,6 +1,6 @@
 include prelude
 import natu/[maxmod]
-import game/[player, slash, title, target, camera]
+import game/[player, slash, title, target, camera, scoreLabel]
 import fader
 
 type
@@ -19,6 +19,8 @@ type
     title: Title
     psTitle: PSTitle
     
+    scoreLabel: ScoreLabel
+    
     freezeFrame: int
     freezeJumpBuffer: bool
     freezeSlashBuffer: bool
@@ -26,12 +28,18 @@ type
     targetSpawnTimer: int
     maxTargetSpawnTimer: int
     
+    lives: int
+    
     scrollPos: Fixed
     scrollSpeed: Fixed
     
     state: GameState
 
 var game: Game
+
+proc setScore(score: int) =
+  game.score = score
+  game.scoreLabel.setScore(game.score)
 
 proc resetGame() =
   for s in game.slashes.mitems():
@@ -43,18 +51,18 @@ proc resetGame() =
   
   game.player.reset()
   
-  game.maxTargetSpawnTimer = 60
+  game.maxTargetSpawnTimer = 120
   game.targetSpawnTimer = game.maxTargetSpawnTimer
   
   game.freezeFrame = 0
   
-  game.score = 0
+  game.lives = 3
+  setScore(0)
 
 proc setGameState(state: GameState) =
   case state:
     of gsFadeIn:
       fadeAmount = 31
-      playSong(modNinjaGroove)
       resetGame()
     of gsTitle:
       printf("TITLE")
@@ -65,13 +73,16 @@ proc setGameState(state: GameState) =
       game.title.hide()
       game.psTitle.hide()
     of gsGameOver:
-      stopSong()
+      for t in game.targets.mitems:
+        t.finished = true
     of gsFadeOut:
-      discard
+      fadeAmount = 0
   
   game.state = state
 
 proc onShow =
+  
+  playSong(modNinjaGroove)
   
   cameraOffset = vec2i()
   
@@ -79,6 +90,8 @@ proc onShow =
   
   game.title.init()
   game.psTitle.init()
+  
+  game.scoreLabel.init(vec2i(10,10))
   
   setupTargetModule()
   
@@ -126,6 +139,7 @@ proc onHide =
   
   game.title.destroy()
   game.psTitle.destroy()
+  game.scoreLabel.destroy()
   
   destroyTargetModule()
 
@@ -140,21 +154,28 @@ proc cleanUpSlashes(index: int = 0) =
     cleanUpSlashes(index + 1)
 
 proc scorePoint(val: int = 1) = 
-  game.score += val
+  setScore(game.score + val)
 
 proc takeDamage() =
   cameraShake(fp(3),fp(0.25))
+  game.freezeFrame = 5
+  dec game.lives
+  playSound(sfxAlarm)
+  
+  if game.lives <= 0:
+    setGameState(gsGameOver)
   #TODO: ADD FAILURE
 
 proc cleanUpTargets(index: int = 0) =
   if index >= game.targets.len: return
   
-  if game.targets[index].failed: takeDamage()
-  else: scorePoint()
-  
   if game.targets[index].finished:
+    if game.targets[index].failed: takeDamage()
+    elif game.state == gsPlay: scorePoint()
+    
     game.targets[index].destroy()
     game.targets.delete(index)
+    
     cleanUpSlashes(index)
   else:
     cleanUpSlashes(index + 1)
@@ -171,6 +192,7 @@ proc onUpdate =
   
   game.title.update()
   game.psTitle.update()
+  game.scoreLabel.update()
   
   case game.state:
     of gsFadeIn:
@@ -182,7 +204,7 @@ proc onUpdate =
       dec game.targetSpawnTimer
       
       if game.targetSpawnTimer <= 0:
-        game.targets.add(initTarget(tkNormal))
+        game.targets.add(initTarget(tkSturdy))
         game.targetSpawnTimer = game.maxTargetSpawnTimer
     of gsGameOver:
       if keyHit(kiStart): setGameState(gsFadeOut)
@@ -215,11 +237,12 @@ proc onUpdate =
   
   for t in game.targets.mitems():
     t.update()
-    for s in game.slashes.mitems():
-      if not t.finished and collide(t.body,s.body):
-        t.hit()
-        game.freezeFrame = 5
-        cameraShake(fp(1.5),fp(0.25))
+    if not t.finished and t.invulTimer <= 0:
+      for s in game.slashes.mitems():
+        if not t.finished and collide(t.body,s.body):
+          t.hit()
+          game.freezeFrame = 5
+          cameraShake(fp(1.5),fp(0.25))
   cleanUpTargets()
   
   # wrap point needs to be a multiple of 4096
@@ -242,6 +265,7 @@ proc onDraw =
   
   game.title.draw()
   game.psTitle.draw()
+  if game.state == gsPlay: game.scoreLabel.draw()
   game.player.draw()
   for s in game.slashes.mitems():
     s.draw()

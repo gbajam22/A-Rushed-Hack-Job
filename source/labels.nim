@@ -7,7 +7,7 @@ var tc: TextContextObj
 
 # init
 tte.setContext(addr tc)
-tte.initBase(fntDialogue, chr4cDrawgB4cts, chr4cErase)
+tte.initBase(fntVerdana9b4, chr4cDrawgB4cts, chr4cErase)
 
 type Label* = object
   obj*: ObjAttr  # base sprite
@@ -73,7 +73,7 @@ proc put*(self: var Label; text: cstring) =
   else:
     self.width = 0
 
-proc init*(self: var Label, pos: Vec2i, size: ObjSize, count: range[1..32], text: cstring = nil, font = fntDialogue, ink = 1, shadow = 2, prio = prioGui) =
+proc init*(self: var Label, pos: Vec2i, size: ObjSize, count: range[1..32], text: cstring = nil, font = fntVerdana9b4, ink = 1, shadow = 2, prio = prioGui) =
   let (w, h) = getSize(size)
   var tid = self.obj.tid
   
@@ -132,50 +132,6 @@ proc render*(self: var Label) =
   tc.shadow = self.shadow
   if self.text != nil:
     tte.write(self.text)
-  self.dirty = false
-
-proc renderRainbow*(self: var Label) =
-  ## 
-  ## Repaint the text for a label.
-  ## 
-  ## This should be done during vblank or while the label is not visible.
-  ## 
-  ## If desired, you can call this immediately after creating the label, but
-  ## keep in mind that visual glitches may appear if the label happened to be
-  ## created on the next frame after a sprite was destroyed.
-  ## 
-  let (w, h) = getSize(self.obj)
-  tte.setContext(addr tc)
-  let surface = addr tc.dst.SurfaceChr4c
-  surface[].init(
-    data = addr objTileMem[self.obj.tid],
-    width = (w * self.count.int).uint,
-    height = h.uint,
-    pal = addr objPalMem[0], # arbitrary
-  )
-  tte.setPos(0, 0)
-  tte.setMargins(0, 0, w * self.count.int, h)
-  tte.eraseScreen()
-  
-  var ink = 2
-  var i = 0
-  var charBuffer {.noinit.}: array[5, char]
-  
-  tc.font = self.font
-  
-  while self.text[i] != '\0':
-    let runeSize = getUtf8Size(self.text[i])
-    for n in 0..<runeSize:
-      charBuffer[n] = self.text[i]
-      inc i
-    charBuffer[runeSize] = '\0'
-    tte.setInk(ink.uint16)
-    tte.setShadow((ink+1).uint16)
-    tte.write((addr charBuffer).cstring)
-    if self.text[i] != ' ':
-      if ink >= 12: ink = 2
-      else: ink += 2
-  
   self.dirty = false
 
 proc draw*(self: var Label) =

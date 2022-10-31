@@ -14,3 +14,7 @@ Music:
 Ninja Groove
 https://modarchive.org/index.php?request=view_by_moduleid&query=196943
 L3wis
+
+Alarm Sound:
+https://opengameart.org/content/short-alarm
+yd
