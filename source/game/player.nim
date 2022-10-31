@@ -94,6 +94,9 @@ proc update*(self: var Player) =
   
   self.vel.y += gravity
   
+  if self.vel.y < fp(0) and not keyIsDown(kiA):
+    self.vel.y += gravity
+  
   let targetVelX = fp(1.5) * (
     (if keyIsDown(kiLeft): -1 else: 0) +
     (if keyIsDown(kiRight): 1 else: 0)
