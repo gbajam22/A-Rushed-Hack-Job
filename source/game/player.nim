@@ -6,22 +6,22 @@ const
   jumpHeight = fp(-4.5)
   
   maxSwordCooldown = 15
-
-const swishEffects = [
-  sfxSwish1,
-  sfxSwish2,
-  sfxSwish3,
-  sfxSwish4,
-  sfxSwish5,
-  sfxSwish6,
-  sfxSwish7,
-  sfxSwish8,
-  sfxSwish9,
-  sfxSwish10,
-  sfxSwish11,
-  sfxSwish12,
-  sfxSwish13,
-]
+  
+  swishEffects = [
+    sfxSwish1,
+    sfxSwish2,
+    sfxSwish3,
+    sfxSwish4,
+    sfxSwish5,
+    sfxSwish6,
+    sfxSwish7,
+    sfxSwish8,
+    sfxSwish9,
+    sfxSwish10,
+    sfxSwish11,
+    sfxSwish12,
+    sfxSwish13,
+  ]
 
 type
   Player* = object
@@ -81,7 +81,7 @@ proc init*(self: var Player) =
     tid = allocObjTiles(gfxPlayer),
     pal = acquireObjPal(gfxPlayer),
     size = gfxPlayer.size,
-    prio = prioActor
+    prio = prioForeground
   )
 
 

@@ -101,3 +101,14 @@ proc centerTop*(b: Body): Vec2f {.noinit.} =
 proc centerBottom*(b: Body): Vec2f {.noinit.} =
   result.x = b.x + Fixed(b.w shl 7)
   result.y = b.y + fp(b.h)
+
+proc collide*(b1, b2: Body): bool =
+  let l1 = b1.x
+  let u1 = b1.y
+  let r1 = l1 + fp(b1.w)
+  let d1 = u1 + fp(b1.h)
+  let l2 = b2.x
+  let u2 = b2.y
+  let r2 = l2 + fp(b2.w)
+  let d2 = u2 + fp(b2.h)
+  r1 > l2 and l1 < r2 and d1 > u2 and u1 < d2

@@ -19,6 +19,10 @@ type
     title: Title
     psTitle: PSTitle
     
+    
+    targetSpawnTimer: int
+    maxTargetSpawnTimer: int
+    
     scrollPos: Fixed
     scrollSpeed: Fixed
     
@@ -26,11 +30,27 @@ type
 
 var game: Game
 
+proc resetGame() =
+  for s in game.slashes.mitems():
+    s.destroy()
+  game.slashes.clear()
+  for t in game.targets.mitems():
+    t.destroy()
+  game.targets.clear()
+  
+  game.player.reset()
+  
+  game.maxTargetSpawnTimer = 60
+  game.targetSpawnTimer = game.maxTargetSpawnTimer
+  
+  game.score = 0
+
 proc setGameState(state: GameState) =
   case state:
     of gsFadeIn:
       fadeAmount = 31
       playSong(modNinjaGroove)
+      resetGame()
     of gsTitle:
       printf("TITLE")
       game.title.show()
@@ -40,7 +60,7 @@ proc setGameState(state: GameState) =
       game.title.hide()
       game.psTitle.hide()
     of gsGameOver:
-      discard
+      stopSong()
     of gsFadeOut:
       discard
   
@@ -93,6 +113,10 @@ proc onHide =
   for s in game.slashes.mitems():
     s.destroy()
   game.slashes.clear()
+  for t in game.targets.mitems():
+    t.destroy()
+  game.targets.clear()
+  
   game.title.destroy()
   game.psTitle.destroy()
   
@@ -104,6 +128,26 @@ proc cleanUpSlashes(index: int = 0) =
   if game.slashes[index].finished:
     game.slashes[index].destroy()
     game.slashes.delete(index)
+    cleanUpSlashes(index)
+  else:
+    cleanUpSlashes(index + 1)
+
+proc scorePoint(val: int = 1) = 
+  game.score += val
+
+proc takeDamage() =
+  discard
+  #TODO: ADD FAILURE
+
+proc cleanUpTargets(index: int = 0) =
+  if index >= game.targets.len: return
+  
+  if game.targets[index].failed: takeDamage()
+  else: scorePoint()
+  
+  if game.targets[index].finished:
+    game.targets[index].destroy()
+    game.targets.delete(index)
     cleanUpSlashes(index)
   else:
     cleanUpSlashes(index + 1)
@@ -120,7 +164,11 @@ proc onUpdate =
     of gsTitle:
       if keyHit(kiStart): setGameState(gsPlay)
     of gsPlay:
-      discard
+      dec game.targetSpawnTimer
+      
+      if game.targetSpawnTimer <= 0:
+        game.targets.add(initTarget(tkNormal))
+        game.targetSpawnTimer = game.maxTargetSpawnTimer
     of gsGameOver:
       if keyHit(kiStart): setGameState(gsFadeOut)
     of gsFadeOut:
@@ -135,7 +183,7 @@ proc onUpdate =
       game.slashes.add(
         createSlash(
           game.player.pos + vec2f(fp(16),fp(0)),
-          game.player.vel,
+          vec2f(game.player.vel.x,fp(0)),
           game.player.backSwing)
       )
   
@@ -147,6 +195,13 @@ proc onUpdate =
   for s in game.slashes.mitems():
     s.update()
   cleanUpSlashes()
+  
+  for t in game.targets.mitems():
+    t.update()
+    for s in game.slashes.mitems():
+      if not t.finished and collide(t.body,s.body):
+        t.hit()
+  cleanUpTargets()
   
   # wrap point needs to be a multiple of 4096
   const wrapPoint = fp(8192)
@@ -167,6 +222,8 @@ proc onDraw =
   game.player.draw()
   for s in game.slashes.mitems():
     s.draw()
+  for t in game.targets.mitems():
+    t.draw()
 
 const GameScene* = Scene(
   show: onShow,

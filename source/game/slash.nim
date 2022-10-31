@@ -5,7 +5,7 @@ type
   Slash* = object
     obj: ObjAttr
     anim: SimpleAnim
-    body: Body
+    body*: Body
     vel: Vec2f
     finished*: bool
 
@@ -19,6 +19,7 @@ proc createSlash*(pos, vel: Vec2f, vflip: bool): Slash =
     pal = acquireObjPal(gfxSlash),
     size = gfxSlash.size,
     vflip = vflip,
+    prio = prioForeground,
   )
   result.body.size = vec2i(18,20)
   result.anim.init(8,0)
