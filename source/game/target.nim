@@ -89,6 +89,8 @@ proc hit*(self: var Target) =
     self.finished = true
 
 proc update*(self: var Target) =
+  if self.finished: return
+  
   if self.invulTimer > 0: dec self.invulTimer
   
   var approachSpeed = targetSpeed

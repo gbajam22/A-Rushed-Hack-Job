@@ -34,7 +34,7 @@ proc init*(self: var NowPlayingLabel, hideY, showY: Fixed) =
   self.state = lsHide
   self.pos = vec2f(0,hideY)
   
-  self.label.init(vec2i(100,100), s8x16, 30, ink = 1, shadow = 2)
+  self.label.init(vec2i(100,100), s8x16, 20, ink = 1, shadow = 2)
   self.label.pal = acquireObjPal(gfxLogo)
 
 proc destroy*(self: var NowPlayingLabel) =

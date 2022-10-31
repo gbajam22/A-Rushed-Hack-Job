@@ -332,6 +332,9 @@ proc onUpdate =
     s.update()
   cleanUpSlashes()
   
+  
+  cleanUpTargets()
+  
   for t in game.targets.mitems():
     t.update()
     if not t.finished and t.invulTimer <= 0:
@@ -340,8 +343,6 @@ proc onUpdate =
           t.hit()
           game.freezeFrame = 5
           cameraShake(fp(1.5),fp(0.25))
-  
-  cleanUpTargets()
   
   # wrap point needs to be a multiple of 4096
   const wrapPoint = fp(8192)
