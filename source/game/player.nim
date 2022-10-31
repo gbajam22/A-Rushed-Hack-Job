@@ -5,7 +5,7 @@ const
   maxJumps = 2
   jumpHeight = fp(-4.75)
   
-  maxSwordCooldown = 15
+  maxSwordCooldown = 10
   
   swishEffects = [
     sfxSwish1,
