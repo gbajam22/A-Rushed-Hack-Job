@@ -32,7 +32,10 @@ type
     targetSpawnTimer: int
     maxTargetSpawnTimer: int
     
+    permittedTargets: set[TargetKind]
+    
     lives: int
+    
     
     scrollPos: Fixed
     scrollSpeed: Fixed
@@ -41,9 +44,24 @@ type
 
 var game: Game
 
+const
+  sturdyTargetThreshold = 10
+  movingTargetThreshold = 20
+  noMoreNormalThreshold = 40
+
 proc setScore(score: int) =
   game.score = score
   game.scoreLabel.setScore(game.score)
+  
+  if game.score >= sturdyTargetThreshold: game.permittedTargets.incl(tkSturdy)
+  if game.score >= movingTargetThreshold: game.permittedTargets.incl(tkMoving)
+  if game.score >= noMoreNormalThreshold: game.permittedTargets.excl(tkNormal)
+  
+  game.maxTargetSpawnTimer = max(
+    45,
+    120 - (score div 2)
+  )
+  
 
 proc setHighScore(score: int) =
   game.highScoreLabel.setScore(score)
@@ -66,6 +84,8 @@ proc resetGame() =
   
   game.lives = 3
   setScore(0)
+  
+  game.permittedTargets = {tkNormal}
 
 proc setGameState(state: GameState) =
   case state:
@@ -207,6 +227,18 @@ proc cleanUpTargets(index: int = 0) =
   else:
     cleanUpSlashes(index + 1)
 
+proc selectTargetKind(): TargetKind =
+  let r = rand(card(game.permittedTargets) - 1)
+  
+  var i = 0
+  for tk in game.permittedTargets:
+    if i == r:
+      return tk
+    else:
+      inc i
+  
+  tkNormal
+
 proc onUpdate =
   
   updateCamera()
@@ -236,7 +268,7 @@ proc onUpdate =
       dec game.targetSpawnTimer
       
       if game.targetSpawnTimer <= 0:
-        game.targets.add(initTarget(tkSturdy))
+        game.targets.add(initTarget(selectTargetKind()))
         game.targetSpawnTimer = game.maxTargetSpawnTimer
     of gsGameOver:
       if keyHit(kiStart): setGameState(gsFadeOut)

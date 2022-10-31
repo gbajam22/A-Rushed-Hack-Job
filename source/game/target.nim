@@ -5,6 +5,9 @@ const
   topLimit = fp(16)
   bottomLimit = floorY - fp(32)
   
+  centerLimit = (topLimit + bottomLimit) / 2
+  limitAmplitude = centerLimit - topLimit
+  
   rightLimit = fp(ScreenWidth)
   leftLimit = fp(-16)
   
@@ -49,6 +52,7 @@ type
     speed: Fixed
     kind: TargetKind
     invulTimer*: int
+    ticker*: uint32
     finished*: bool
     failed*: bool
 
@@ -66,6 +70,8 @@ proc initTarget*(kind: TargetKind): Target =
   result.invulTimer = 0
   result.body.size = vec2i(16,32)
   
+  result.ticker = rand(uint32)
+  
   result.pos = vec2f(rightLimit, rand(topLimit,bottomLimit))
 
 proc destroy*(self: var Target) =
@@ -82,6 +88,15 @@ proc hit*(self: var Target) =
 
 proc update*(self: var Target) =
   if self.invulTimer > 0: dec self.invulTimer
+  
+  case self.kind:
+    of tkNormal:
+      discard
+    of tkSturdy:
+      discard
+    of tkMoving:
+      self.ticker += 200
+      self.pos.y = centerLimit + (limitAmplitude * lusin(self.ticker).fp)
   
   self.speed.approach(targetSpeed, fp(0.1))
   self.pos.x += self.speed
