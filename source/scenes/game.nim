@@ -69,7 +69,9 @@ proc switchMusic() =
 const
   sturdyTargetThreshold = 10
   movingTargetThreshold = 20
-  noMoreNormalThreshold = 40
+  fastTargetThreshold = 30
+  movingSturdyTargetThreshold = 40
+  noMoreNormalThreshold = 50
 
 proc setScore(score: int) =
   game.score = score
@@ -78,12 +80,13 @@ proc setScore(score: int) =
   if game.score >= sturdyTargetThreshold: game.permittedTargets.incl(tkSturdy)
   if game.score >= movingTargetThreshold: game.permittedTargets.incl(tkMoving)
   if game.score >= noMoreNormalThreshold: game.permittedTargets.excl(tkNormal)
+  if game.score >= movingSturdyTargetThreshold: game.permittedTargets.incl(tkSturdyMoving)
+  if game.score >= fastTargetThreshold: game.permittedTargets.incl(tkFast)
   
   game.maxTargetSpawnTimer = max(
     45,
     120 - (score div 2)
   )
-  
 
 proc setHighScore(score: int) =
   game.highScoreLabel.setScore(score)
@@ -249,9 +252,9 @@ proc cleanUpTargets(index: int = 0) =
     game.targets[index].destroy()
     game.targets.delete(index)
     
-    cleanUpSlashes(index)
+    cleanUpTargets(index)
   else:
-    cleanUpSlashes(index + 1)
+    cleanUpTargets(index + 1)
 
 proc selectTargetKind(): TargetKind =
   let r = rand(card(game.permittedTargets) - 1)
@@ -337,6 +340,7 @@ proc onUpdate =
           t.hit()
           game.freezeFrame = 5
           cameraShake(fp(1.5),fp(0.25))
+  
   cleanUpTargets()
   
   # wrap point needs to be a multiple of 4096

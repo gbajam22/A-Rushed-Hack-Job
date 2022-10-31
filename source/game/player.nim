@@ -7,6 +7,8 @@ const
   
   maxSwordCooldown = 10
   
+  movementSpeed = fp(1.75)
+  
   swishEffects = [
     sfxSwish1,
     sfxSwish2,
@@ -99,7 +101,7 @@ proc update*(self: var Player) =
   if self.vel.y < fp(0) and not keyIsDown(kiA):
     self.vel.y += gravity
   
-  let targetVelX = fp(1.5) * (
+  let targetVelX = movementSpeed * (
     (if keyIsDown(kiLeft): -1 else: 0) +
     (if keyIsDown(kiRight): 1 else: 0)
   )

@@ -47,6 +47,8 @@ type
     tkNormal
     tkSturdy
     tkMoving
+    tkSturdyMoving
+    tkFast
   Target* = object
     body*: Body
     speed: Fixed
@@ -79,15 +81,17 @@ proc destroy*(self: var Target) =
 
 proc hit*(self: var Target) =
   playSound(pickRandom(breakEffects))
-  if self.kind == tkSturdy:
+  if self.kind in {tkSturdy,tkSturdyMoving}:
     self.speed = fp(3)
-    self.kind = tkNormal
+    dec self.kind
     self.invulTimer = 10
   else:
     self.finished = true
 
 proc update*(self: var Target) =
   if self.invulTimer > 0: dec self.invulTimer
+  
+  var approachSpeed = targetSpeed
   
   case self.kind:
     of tkNormal:
@@ -97,8 +101,13 @@ proc update*(self: var Target) =
     of tkMoving:
       self.ticker += 200
       self.pos.y = centerLimit + (limitAmplitude * lusin(self.ticker).fp)
+    of tkSturdyMoving:
+      self.ticker += 150
+      self.pos.y = centerLimit + (limitAmplitude * lusin(self.ticker).fp)
+    of tkFast:
+      approachSpeed *= fp(1.7)
   
-  self.speed.approach(targetSpeed, fp(0.1))
+  self.speed.approach(approachSpeed, fp(0.1))
   self.pos.x += self.speed
   
   if self.pos.x <= leftLimit:
@@ -106,8 +115,6 @@ proc update*(self: var Target) =
     self.failed = true
 
 proc draw*(self: var Target) =
-  if self.finished: return
-  
   let screenpos = vec2i(self.pos) - cameraOffset
   
   let tidOffset = ord(self.kind) * 8
