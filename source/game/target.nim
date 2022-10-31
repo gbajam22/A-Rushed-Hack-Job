@@ -89,7 +89,7 @@ proc update*(self: var Target) =
 proc draw*(self: var Target) =
   if self.finished: return
   
-  let screenpos = vec2i(self.pos)
+  let screenpos = vec2i(self.pos) - cameraOffset
   
   let tidOffset = ord(self.kind) * 8
   

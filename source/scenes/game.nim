@@ -1,6 +1,6 @@
 include prelude
 import natu/[maxmod]
-import game/[player, slash, title, target]
+import game/[player, slash, title, target, camera]
 import fader
 
 type
@@ -15,10 +15,13 @@ type
     score: int
     player: Player
     slashes: List[10,Slash]
-    targets: List[10,Target]
+    targets: List[20,Target]
     title: Title
     psTitle: PSTitle
     
+    freezeFrame: int
+    freezeJumpBuffer: bool
+    freezeSlashBuffer: bool
     
     targetSpawnTimer: int
     maxTargetSpawnTimer: int
@@ -42,6 +45,8 @@ proc resetGame() =
   
   game.maxTargetSpawnTimer = 60
   game.targetSpawnTimer = game.maxTargetSpawnTimer
+  
+  game.freezeFrame = 0
   
   game.score = 0
 
@@ -67,6 +72,8 @@ proc setGameState(state: GameState) =
   game.state = state
 
 proc onShow =
+  
+  cameraOffset = vec2i()
   
   game.player.init()
   
@@ -136,7 +143,7 @@ proc scorePoint(val: int = 1) =
   game.score += val
 
 proc takeDamage() =
-  discard
+  cameraShake(fp(3),fp(0.25))
   #TODO: ADD FAILURE
 
 proc cleanUpTargets(index: int = 0) =
@@ -153,6 +160,14 @@ proc cleanUpTargets(index: int = 0) =
     cleanUpSlashes(index + 1)
 
 proc onUpdate =
+  
+  updateCamera()
+  
+  if game.freezeFrame > 0:
+    dec game.freezeFrame
+    if keyHit(kiA): game.freezeJumpBuffer = true
+    if keyHit(kiB): game.freezeSlashBuffer = true
+    return
   
   game.title.update()
   game.psTitle.update()
@@ -178,7 +193,8 @@ proc onUpdate =
   game.scrollSpeed.approach(fp(2),fp(0.2))
   game.scrollPos += game.scrollSpeed
   
-  if keyHit(kiB):
+  if keyHit(kiB) or game.freezeSlashBuffer:
+    game.freezeSlashBuffer = false
     if game.player.swordSlash():
       game.slashes.add(
         createSlash(
@@ -187,7 +203,8 @@ proc onUpdate =
           game.player.backSwing)
       )
   
-  if keyHit(kiA):
+  if keyHit(kiA) or game.freezeJumpBuffer:
+    game.freezeJumpBuffer = false
     game.player.jump()
   
   game.player.update()
@@ -201,6 +218,8 @@ proc onUpdate =
     for s in game.slashes.mitems():
       if not t.finished and collide(t.body,s.body):
         t.hit()
+        game.freezeFrame = 5
+        cameraShake(fp(1.5),fp(0.25))
   cleanUpTargets()
   
   # wrap point needs to be a multiple of 4096
@@ -212,10 +231,14 @@ proc onUpdate =
 proc onDraw =
   let scroll = game.scrollPos.toInt() 
   
-  bgofs[0].x = scroll.int16
-  bgOfs[3].x = (scroll div 8).int16
+  bgofs[0].x = scroll.int16 - cameraOffset.x.int16
+  bgofs[0].y = 64-cameraOffset.y.int16
+  
+  bgOfs[1].x = (scroll div 2).int16 - cameraOffset.x.int16
+  bgofs[1].y = 128-cameraOffset.y.int16
+  
   bgOfs[2].x = (scroll div 4).int16
-  bgOfs[1].x = (scroll div 2).int16
+  bgOfs[3].x = (scroll div 8).int16
   
   game.title.draw()
   game.psTitle.draw()
